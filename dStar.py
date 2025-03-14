@@ -183,6 +183,8 @@ def main():
     s_start = input("Enter the start node: ").strip()
     s_end = input("Enter the end node: ").strip()
 
+    print(f"Start node: {s_start}, End node: {s_end}")
+
     grid_size = (10, 10)
     dstar = DStar(s_start=s_start, s_goal=s_end, grid_size=grid_size)
     dstar.read_csv('data1.csv')  # Make sure to update the file name if needed
