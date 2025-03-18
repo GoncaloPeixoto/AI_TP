@@ -1,5 +1,8 @@
 import csv
-import heapq
+import heapq   
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 
 class DStar:
     def __init__(self, graph, s_start, s_goal, waypoints, weight_index):
