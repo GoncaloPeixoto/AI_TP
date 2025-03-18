@@ -1,0 +1,5 @@
+csv_filename = input("Nome do ficheiro:")
+lrta = LRTAStar(csv_filename)
+start = input("Inicio:")
+goal = input("Destino:")
+lrta.lrta_star('A', 'D')
