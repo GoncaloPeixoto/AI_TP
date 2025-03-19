@@ -1,48 +1,30 @@
 import csv
-import heapq
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
-class DStar:
+class LRTAStar:
     def __init__(self, graph, s_start, s_goal, waypoints, weight_index):
         self.graph = graph
         self.s_start = s_start
         self.s_goal = s_goal
         self.waypoints = waypoints
         self.weight_index = weight_index
-        self.OPEN = set()
-        self.t = {}
-        self.PARENT = {}
-        self.h = {}
-        self.k = {}
+        self.h = {node: 0 for node in self.graph}  # Heuristic values
         self.path = []
-    
-    def init(self):
-        for node in self.graph:
-            self.t[node] = 'NEW'
-            self.k[node] = float('inf')
-            self.PARENT[node] = None
-            self.h[node] = 0
+        self.all_paths = []  # Store all paths explored
     
     def run(self):
-        self.init()
         full_path = []
         current_start = self.s_start
-        total_toll = 0
-        total_fuel = 0
-        total_distance = 0
+        total_toll, total_fuel, total_distance = 0, 0, 0
         
         for waypoint in self.waypoints + [self.s_goal]:
             self.s_goal = waypoint
-            self.insert(self.s_goal, 0)
-            while self.OPEN:
-                self.process_state()
-                if self.t.get(current_start, 'NEW') == 'CLOSED':
-                    break
-            partial_path = self.extract_path(current_start, self.s_goal)
+            partial_path = self.lrta_star(current_start, self.s_goal)
             if not partial_path:
                 return []
             full_path.extend(partial_path[:-1])  # Avoid duplicate nodes in path
             current_start = self.s_goal
-            self.init()  # Reset for the next segment
         full_path.append(self.s_goal)
         
         # Calculate total costs
@@ -54,55 +36,53 @@ class DStar:
                     total_distance += distance
                     break
         
+        print("All paths explored:")
+        for path in self.all_paths:
+            print(" -> ".join(path))
+        
+        print("\n========================\n")
+        print("Best path:")
+        print(" -> ".join(full_path))
+        print("\n========================\n")
+        
         print(f"Total Toll Cost: {total_toll}")
         print(f"Total Fuel Cost: {total_fuel}")
         print(f"Total Distance: {total_distance} km")
         
         return full_path
     
-    def process_state(self):
-        s = self.min_state()
-        if s is None:
-            return -1
-        k_old = self.get_k_min()
-        self.delete(s)
+    def lrta_star(self, s_start, s_goal):
+        s = s_start
+        path = [s]
+        visited = set()  # Track visited nodes to prevent loops
         
-        for neighbor, toll, fuel, distance in self.graph.get(s, []):
-            cost = [toll, fuel, distance][self.weight_index]
-            if self.t.get(neighbor, 'NEW') == 'NEW' or self.h.get(neighbor, float('inf')) > self.h.get(s, float('inf')) + cost:
-                self.PARENT[neighbor] = s
-                self.insert(neighbor, self.h.get(s, float('inf')) + cost)
-    
-    def extract_path(self, s_start, s_goal):
-        path = [s_start]
-        s = self.PARENT.get(s_start)
-        while s and s != s_goal:
+        while s != s_goal:
+            visited.add(s)
+            min_cost = float('inf')
+            best_next = None
+            
+            for neighbor, toll, fuel, distance in self.graph.get(s, []):
+                if neighbor in visited:
+                    continue  # Skip visited nodes to prevent loops
+                
+                cost = toll if self.weight_index == 0 else fuel if self.weight_index == 1 else distance if self.weight_index == 2 else toll + fuel + distance
+                cost += self.h[neighbor]  # f = g + h
+                
+                if cost < min_cost:
+                    min_cost = cost
+                    best_next = neighbor
+            
+            if best_next is None:
+                return []  # No path found
+            
+            self.h[s] = min_cost  # Update heuristic estimate
+            self.h[best_next] = min_cost  # Improve heuristic update
+            s = best_next
             path.append(s)
-            s = self.PARENT.get(s)
-        if s:
-            path.append(s_goal)
+        
+        self.all_paths.append(path[:])  # Store each attempted path
         return path
-    
-    def min_state(self):
-        if not self.OPEN:
-            return None
-        return min(self.OPEN, key=lambda x: self.k.get(x, float('inf')))
-    
-    def get_k_min(self):
-        if not self.OPEN:
-            return -1
-        return min(self.k.values())
-    
-    def insert(self, s, h_new):
-        self.h[s] = h_new
-        self.k[s] = h_new
-        self.t[s] = 'OPEN'
-        self.OPEN.add(s)
-    
-    def delete(self, s):
-        if self.t.get(s, 'NEW') == 'OPEN':
-            self.t[s] = 'CLOSED'
-        self.OPEN.remove(s)
+
 
 def read_csv(file_path):
     graph = {}
@@ -121,6 +101,7 @@ def read_csv(file_path):
             graph[destination].append((origin, toll, fuel, distance))  # Assuming bidirectional roads
     
     return graph
+
 
 def main():
     file_path = 'cities_nodes_special.csv'
@@ -142,18 +123,19 @@ def main():
         print("Invalid selection. Please enter numbers corresponding to the available cities.")
         return
     
-    criteria = int(input("Choose optimization criteria (0: Toll, 1: Fuel, 2: Distance): "))
-    if criteria not in [0, 1, 2]:
+    criteria = int(input("Choose optimization criteria (0: Toll, 1: Fuel, 2: Distance, 3: All three combined): "))
+    if criteria not in [0, 1, 2, 3]:
         print("Invalid choice.")
         return
     
-    dstar = DStar(graph, start, end, waypoints, criteria)
-    path = dstar.run()
+    lrta = LRTAStar(graph, start, end, waypoints, criteria)
+    path = lrta.run()
     
     if path:
         print(f"Optimal path: {' -> '.join(path)}")
     else:
         print("No path found.")
+
 
 if __name__ == "__main__":
     main()
