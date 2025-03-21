@@ -16,21 +16,19 @@ class AStar:
         self.path = []
 
     def run(self):
-        full_path = []
+        full_path = [self.s_start]
         current_start = self.s_start
         
         # Include waypoints between start and goal
-        waypoints = [self.s_goal] + self.waypoints
+        waypoints = self.waypoints + [self.s_goal]
         for waypoint in waypoints:
             self.s_goal = waypoint
             self.reset_search()
-            self.find_path(current_start)
-            if not self.path:
+            if not self.find_path(current_start):  # Handle cases where no path is found
                 print(f"No path found from {current_start} to {self.s_goal}.")
                 return []
-            full_path.extend(self.path[:-1])  # Avoid duplicates
+            full_path.extend(self.path[1:])  # Avoid duplicate nodes in the path
             current_start = self.s_goal
-        full_path.append(self.s_goal)  # Append the last goal
         
         self.calculate_costs(full_path)
         return full_path
@@ -41,6 +39,7 @@ class AStar:
         self.PARENT = {}
         self.g = {}
         self.h = {}
+        self.path = []
 
     def find_path(self, current_start):
         # Initialize the starting point
@@ -52,7 +51,8 @@ class AStar:
             current_f, current_node = heapq.heappop(self.OPEN)
             if current_node == self.s_goal:
                 self.reconstruct_path()
-                return
+                return True  # Return True when the goal is reached
+
             self.CLOSED.add(current_node)
             
             for neighbor, toll, fuel, distance in self.graph.get(current_node, []):
@@ -68,13 +68,15 @@ class AStar:
                     self.PARENT[neighbor] = current_node
                     self.h[neighbor] = self.calculate_heuristic(neighbor)
                     heapq.heappush(self.OPEN, (new_g + self.h[neighbor], neighbor))
+        
+        return False  # Return False if no path is found
 
     def reconstruct_path(self):
         current = self.s_goal
         path = []
-        while current != self.s_start:
+        while current in self.PARENT:  # Check if current has a parent to prevent infinite loops
             path.append(current)
-            current = self.PARENT.get(current)
+            current = self.PARENT[current]
         path.append(self.s_start)
         path.reverse()
         self.path = path
@@ -89,14 +91,13 @@ class AStar:
                     total_distance += distance
                     break
 
-        print(f"Optimal path: {' -> '.join(full_path)}")
         print(f"Total Toll Cost: {total_toll}")
         print(f"Total Fuel Cost: {total_fuel}")
         print(f"Total Distance: {total_distance} km")
 
     def calculate_heuristic(self, node):
-        # Heuristic based on the direct distance to the goal (you can customize this)
-        return 0  # Can be changed to use a more meaningful heuristic if needed
+        # If coordinates were available, this could use Euclidean or Manhattan distance.
+        return 0  # Keeping it as 0 but consider adding a better heuristic.
 
 def read_csv(file_path):
     graph = {}
