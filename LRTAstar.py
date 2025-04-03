@@ -1,6 +1,8 @@
 import csv
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
+from datetime import datetime
+start=datetime.now()
 
 class LRTAStar:
     def __init__(self, graph, s_start, s_goal, waypoints, weight_index):
@@ -139,3 +141,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+print(f"Run time: {datetime.now() - start}")

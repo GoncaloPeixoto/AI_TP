@@ -1,5 +1,8 @@
 import csv
 import heapq
+from datetime import datetime
+start=datetime.now()
+
 
 class AStar:
     def __init__(self, graph, s_start, s_goal, waypoints, weight_index):
@@ -142,6 +145,8 @@ def main():
         print("Invalid choice.")
         return
     
+    
+
     astar = AStar(graph, start, end, waypoints, criteria)
     path = astar.run()
 
@@ -152,3 +157,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+print(f"Run time: {datetime.now() - start}")
